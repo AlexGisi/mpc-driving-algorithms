@@ -13,9 +13,9 @@ function [mpcinfo, ref, obs] = mpc1
     obs = [20 4; 21 4; 21 3.5; 20 3.5];
 
     %% Set up NMPC problem.
-    Hp = 50;
+    Hp = 30;
     Hc = 150;
-    Ts = 0.2;
+    Ts = 0.5;
 
     x0 = [0; 0; 3.5; getDRef(0)];
     u0 = [0; 0];
