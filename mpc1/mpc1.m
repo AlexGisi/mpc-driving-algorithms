@@ -19,7 +19,7 @@ function [mpcinfo, ref, obs] = mpc1
 
     x0 = [0; 0; 3.5; getDRef(0)];
     u0 = [0; 0];
-    ref = getRef(x0, Hp, Ts);
+    ref = getRef(x0, Hp);
 
     nx = 4;
     nu = 2;
@@ -46,7 +46,7 @@ function [mpcinfo, ref, obs] = mpc1
     nlobj.MV(2).Min = -pi/6;
     nlobj.MV(2).Max = pi/6;
 
-    nlobj.Optimization.CustomIneqConFcn = "mpc1ObsIneq";
+    % nlobj.Optimization.CustomIneqConFcn = "mpc1ObsIneq";
     
     validateFcns(nlobj, x0, [0; 0], [], {Ts});
     
@@ -70,10 +70,32 @@ function dRefY = getDRef(X)
     dRefY = (8 * pi / 100) * cos((2 * pi / 100) * X);
 end
 
+function refY = getRefY1(X)
+    z_1 = (2.4 / 25) * (X - 27.19) - 1.2;
+    z_2 = (2.4 / 21.95) * (X - 56.46) - 1.2;
+    d_x1 = 25;
+    d_x2 = 21.95;
+    d_y1 = 4.05;
+    d_y2 = 5.7;
+
+    refY = (d_y1 / 2) * (1 + tanh(z_1)) - (d_y2 / 2) * (1 + tanh(z_2));
+end
+
+function dRefY = getDRef1(X)
+    z_1 = (2.4 / 25) * (X - 27.19) - 1.2;
+    z_2 = (2.4 / 21.95) * (X - 56.46) - 1.2;
+    d_x1 = 25;
+    d_x2 = 21.95;
+    d_y1 = 4.05;
+    d_y2 = 5.7;
+
+    dRefY = atan(d_y1 * (1 / cosh(z_1)))^2 * (1.2 / d_x1) - d_y2 * (1 / cosh(z_2)^2 * (1.2 / d_x2));
+end
+
 
 % x : kinematic bicycle initial state vector.
 % ref : T x 4 matrix
-function ref = getRef(x, p, Ts)
+function ref = getRef(x, p)
     Xs = zeros(p, 1);
     Ys = zeros(p, 1);
     Vs = x(3) * ones(p, 1);
@@ -87,12 +109,18 @@ function ref = getRef(x, p, Ts)
     % The velocity times the discretization time is the desired distance
     % between waypoints. To project this to the X-axis, use cos of car's
     % heading.
-    trueDist = Vs(1) * Ts;
-    addX = trueDist * cos(x(4));
-    for i=2:p
-        Xs(i) = Xs(i-1) + addX;
-    end
+    % trueDist = Vs(1) * Ts;
+    % addX = trueDist * cos(x(4));
+    % for i=2:p
+        % Xs(i) = Xs(i-1) + addX;
+    % end
 
+    % In applications, planning a path through novel terrain usually
+    % involves being given a set of discrete waypoints which may not be
+    % properly spaced. Generate such a list:
+    for i=2:p
+        Xs(i) = Xs(i-1) + 2;
+    end
     for i=2:p
         Ys(i) = getRefY(Xs(i));
         Ps(i) = atan(getDRef(Xs(i)));
